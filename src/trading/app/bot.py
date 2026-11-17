@@ -10,7 +10,10 @@ from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
 from trading.app.config import Settings
 from trading.app.database import Database
-from trading.research.binance_account import (\n    BinanceAccountError,\n    BinanceReadOnlyAccountClient,\n)
+from trading.research.binance_account import (
+    BinanceAccountError,
+    BinanceReadOnlyAccountClient,
+)
 from trading.research.binance_public import BinanceDataError
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -99,7 +102,10 @@ def build_dispatcher(db: Database, settings: Settings) -> Dispatcher:
             )
             return
         except (BinanceDataError, ValueError) as exc:
-            logger.warning(\n                "Binance account read failed: category=unexpected error=%s",\n                type(exc).__name__,\n            )
+            logger.warning(
+                "Binance account read failed: category=unexpected error=%s",
+                type(exc).__name__,
+            )
             await message.answer(
                 "⚠️ حدث خطأ غير متوقع أثناء قراءة حساب Binance. "
                 "راجع سجلات Railway وأرسل وقت المحاولة للدعم."
@@ -112,14 +118,14 @@ def build_dispatcher(db: Database, settings: Settings) -> Dispatcher:
         if not nonzero:
             balances_text = "لا توجد أرصدة ظاهرة في حساب Spot."
         else:
-            balances_text = "\\n".join(
+            balances_text = "\n".join(
                 f"• {item.asset}: متاح {item.free:f} | محجوز {item.locked:f}"
                 for item in nonzero[:30]
             )
         await message.answer(
-            "🏦 قراءة حساب Binance (Read Only)\\n"
-            "هذه بيانات الحساب الحقيقي وليست رأس مال المحفظة التجريبية.\\n\\n"
-            f"{balances_text}\\n\\n"
+            "🏦 قراءة حساب Binance (Read Only)\n"
+            "هذه بيانات الحساب الحقيقي وليست رأس مال المحفظة التجريبية.\n\n"
+            f"{balances_text}\n\n"
             "🔒 لا توجد أوامر تداول أو سحب مفعّلة في هذا النظام."
         )
 
