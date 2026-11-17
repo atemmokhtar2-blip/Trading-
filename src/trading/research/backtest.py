@@ -34,7 +34,11 @@ class StrategySpec:
     slow_period: int
 
     def __post_init__(self) -> None:
-        if not self.name.strip() or self.fast_period < 2 or self.slow_period <= self.fast_period:
+        if (
+            not self.name.strip()
+            or self.fast_period < 2
+            or self.slow_period <= self.fast_period
+        ):
             raise ValueError("strategy requires 2 <= fast_period < slow_period")
 
 
@@ -91,7 +95,11 @@ def run_ema_backtest(
     For a chronological holdout, start_index skips trading until the holdout while
     indicator values continue to use only earlier bars. The holdout starts flat.
     """
-    if not isinstance(initial_cash, Decimal) or not initial_cash.is_finite() or initial_cash <= ZERO:
+    if (
+        not isinstance(initial_cash, Decimal)
+        or not initial_cash.is_finite()
+        or initial_cash <= ZERO
+    ):
         raise ValueError("initial_cash must be a finite positive Decimal")
     if len(bars) < spec.slow_period + 2:
         raise ValueError("not enough bars for strategy warm-up and execution")
@@ -147,19 +155,29 @@ def run_ema_backtest(
             total_fees += quantity * fill_price * commission_rate
             completed.append(
                 BacktestTrade(
-                    entry_time, next_bar.timestamp.isoformat(), quantity,
-                    entry_price, fill_price, proceeds - entry_cost,
+                    entry_time,
+                    next_bar.timestamp.isoformat(),
+                    quantity,
+                    entry_price,
+                    fill_price,
+                    proceeds - entry_cost,
                 )
             )
             cash, quantity, entry_cost = proceeds, ZERO, ZERO
 
         mark = cash
         if quantity > ZERO:
-            mark = quantity * next_bar.close * sell_multiplier * (Decimal("1") - commission_rate)
+            mark = (
+                quantity
+                * next_bar.close
+                * sell_multiplier
+                * (Decimal("1") - commission_rate)
+            )
         equity_peak = max(equity_peak, mark)
         if equity_peak > ZERO:
             max_drawdown = max(
-                max_drawdown, (equity_peak - mark) / equity_peak * Decimal("100")
+                max_drawdown,
+                (equity_peak - mark) / equity_peak * Decimal("100"),
             )
 
     if quantity > ZERO:
@@ -169,8 +187,12 @@ def run_ema_backtest(
         total_fees += quantity * fill_price * commission_rate
         completed.append(
             BacktestTrade(
-                entry_time, final_bar.timestamp.isoformat(), quantity,
-                entry_price, fill_price, proceeds - entry_cost,
+                entry_time,
+                final_bar.timestamp.isoformat(),
+                quantity,
+                entry_price,
+                fill_price,
+                proceeds - entry_cost,
             )
         )
         cash = proceeds
@@ -179,11 +201,16 @@ def run_ema_backtest(
     gross_profit = sum((t.net_pnl for t in completed if t.net_pnl > ZERO), ZERO)
     gross_loss = -sum((t.net_pnl for t in completed if t.net_pnl < ZERO), ZERO)
     profit_factor = (
-        gross_profit / gross_loss if gross_loss > ZERO
+        gross_profit / gross_loss
+        if gross_loss > ZERO
         else (None if gross_profit == ZERO else Decimal("Infinity"))
     )
     return_pct = (cash - initial_cash) / initial_cash * Decimal("100")
-    win_rate = Decimal(wins) / Decimal(len(completed)) * Decimal("100") if completed else ZERO
+    win_rate = (
+        Decimal(wins) / Decimal(len(completed)) * Decimal("100")
+        if completed
+        else ZERO
+    )
     return BacktestReport(
         strategy=spec.name,
         bars_tested=len(bars) - start_index,
@@ -200,11 +227,16 @@ def run_ema_backtest(
     )
 
 
-def chronological_split(total_bars: int, train_fraction: Decimal = Decimal("0.7")) -> int:
+def chronological_split(
+    total_bars: int, train_fraction: Decimal = Decimal("0.7")
+) -> int:
     """Return the first holdout index without shuffling time-series observations."""
     if total_bars < 100:
         raise ValueError("at least 100 bars are required for a meaningful split")
-    if not train_fraction.is_finite() or not Decimal("0.5") <= train_fraction <= Decimal("0.9"):
+    if (
+        not train_fraction.is_finite()
+        or not Decimal("0.5") <= train_fraction <= Decimal("0.9")
+    ):
         raise ValueError("train_fraction must be between 0.5 and 0.9")
     split = int(Decimal(total_bars) * train_fraction)
     if split < 1 or split >= total_bars - 1:
