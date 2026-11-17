@@ -12,7 +12,7 @@ The complete application runs in Railway. There is no local desktop terminal, Wi
 | `trading-worker` | Market-data ingestion, strategy loop, risk checks, paper execution, reconciliation | Separate long-running Python worker |
 | `PostgreSQL` | Durable users/configuration, strategy runs, audit trail, portfolio and execution state | Railway managed database |
 
-The bot and worker may use the same repository/image but must have separate start commands and independent health checks. The actual commands will be added only after their application entry points exist; do not deploy placeholder commands that appear healthy but do no work.
+The bot and worker use the same repository with separate Railway services and start commands. Configure the bot service start command as `python -m trading.app.bot` and the worker service as `python -m trading.app.worker`. Attach the Neon connection string to both as `DATABASE_URL`. The bot also needs `TELEGRAM_BOT_TOKEN` and `ADMIN_TELEGRAM_ID`. Set `TRADING_MODE=paper` on both. Set the worker replica count to exactly one for this scaffold.
 
 ## Worker ownership and restart safety
 
@@ -29,7 +29,9 @@ Non-secret configuration should explicitly identify the runtime mode, for exampl
 - `APP_ENV`
 - `TRADING_MODE` (initially `paper`)
 - `DATABASE_URL`
-- `TELEGRAM_BOT_TOKEN` (only when Telegram integration is implemented)
+- `TELEGRAM_BOT_TOKEN`
+- `ADMIN_TELEGRAM_ID`
+- `INITIAL_PAPER_BALANCE` (display/configuration placeholder; default `1000`)
 - Binance market-data base URL / WebSocket configuration (public endpoints only in the initial phase)
 
 Later, the Testnet adapter may add dedicated Testnet API key/secret variables. These must be stored only as Railway secrets. Production credentials and live trading mode are rejected by the initial configuration. Never print environment values, credentials, signed request URLs, or authorization headers in logs.
@@ -44,6 +46,6 @@ Later, the Testnet adapter may add dedicated Testnet API key/secret variables. T
 6. Verify public Binance market-data reconnect, stale-data rejection, and rate-limit handling.
 7. Only after the simulator is validated, add Binance Spot Testnet credentials and authenticated Testnet execution as a separate reviewed milestone.
 
-## Current limitation
+## Current implementation limits
 
-This repository currently contains the deterministic risk policy and in-memory portfolio ledger, not the Telegram bot, worker entry points, database persistence, or Railway service commands. Therefore this document records the deployment target and acceptance gates; it does not claim that a Railway deployment is already running.
+The Telegram polling bot and idempotent initial PostgreSQL schema are scaffolded. The worker currently writes a 30-second heartbeat only: it does not yet ingest Binance prices, run a strategy, create paper fills, or persist the in-memory ledger. There is no distributed worker lease yet, so run exactly one worker replica. The bot's pause/resume buttons change the database control flag but do not yet control an active strategy loop. Do not interpret a healthy bot/worker process as an active trading system. Binance API keys are not consumed; public market data will not need them. Testnet credentials and order execution are not implemented.
