@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import os
 from decimal import Decimal, InvalidOperation
+import os
 from dataclasses import dataclass
 
 
