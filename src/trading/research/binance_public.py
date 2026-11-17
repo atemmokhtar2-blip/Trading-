@@ -7,10 +7,10 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
-from typing import Any
 
 from trading.execution.paper import MarketBar
 
