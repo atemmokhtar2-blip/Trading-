@@ -39,4 +39,24 @@ def test_requires_admin_id(monkeypatch: pytest.MonkeyPatch) -> None:
     valid_env(monkeypatch)
     monkeypatch.delenv("ADMIN_TELEGRAM_ID")
     with pytest.raises(ConfigurationError, match="ADMIN_TELEGRAM_ID"):
-        Settings.from_env()
+        Settings.from_env(require_telegram=True)
+
+
+def test_worker_configuration_does_not_require_telegram(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    valid_env(monkeypatch)
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN")
+    monkeypatch.delenv("ADMIN_TELEGRAM_ID")
+    settings = Settings.from_env()
+    assert settings.telegram_bot_token is None
+    assert settings.admin_telegram_id is None
+
+
+def test_bot_configuration_requires_telegram(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    valid_env(monkeypatch)
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN")
+    with pytest.raises(ConfigurationError, match="TELEGRAM_BOT_TOKEN"):
+        Settings.from_env(require_telegram=True)
