@@ -4,6 +4,9 @@ This module intentionally delegates to the unified app. Both Telegram polling
 and the heartbeat therefore run in the same process and share one DB pool.
 """
 
+# Ruff's import sorter classifies the local src-layout package inconsistently here.
+# Keep the standard-library and local application imports visibly separated.
+# ruff: noqa: I001
 import asyncio
 import logging
 
