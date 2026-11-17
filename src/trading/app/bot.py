@@ -10,7 +10,10 @@ from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
 from trading.app.config import Settings
 from trading.app.database import Database
-from trading.research.binance_account import BinanceReadOnlyAccountClient
+from trading.research.binance_account import (
+    BinanceAccountError,
+    BinanceReadOnlyAccountClient,
+)
 from trading.research.binance_public import BinanceDataError
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -85,11 +88,27 @@ def build_dispatcher(db: Database, settings: Settings) -> Dispatcher:
         )
         try:
             snapshot = await asyncio.to_thread(client.account_snapshot)
-        except (BinanceDataError, ValueError) as exc:
-            logger.warning("Binance read-only account request failed: %s", type(exc).__name__)
+        except BinanceAccountError as exc:
+            logger.warning(
+                "Binance account read failed: category=%s code=%s",
+                exc.category,
+                exc.code,
+            )
             await message.answer(
-                "⚠️ تعذر قراءة حساب Binance الآن. راجع صلاحية المفتاح واتصال Binance، "
-                "ثم حاول مرة أخرى."
+                "❌ فشل الاتصال بحساب Binance\n\n"
+                f"السبب: {exc.user_message}\n"
+                f"كود التشخيص: {exc.code if exc.code is not None else 'غير متاح'}\n\n"
+                "🔐 لم يتم عرض أو تسجيل أي مفتاح أو Secret."
+            )
+            return
+        except (BinanceDataError, ValueError) as exc:
+            logger.warning(
+                "Binance account read failed: category=unexpected error=%s",
+                type(exc).__name__,
+            )
+            await message.answer(
+                "⚠️ حدث خطأ غير متوقع أثناء قراءة حساب Binance. "
+                "راجع سجلات Railway وأرسل وقت المحاولة للدعم."
             )
             return
         nonzero = [
@@ -99,14 +118,14 @@ def build_dispatcher(db: Database, settings: Settings) -> Dispatcher:
         if not nonzero:
             balances_text = "لا توجد أرصدة ظاهرة في حساب Spot."
         else:
-            balances_text = "\\n".join(
+            balances_text = "\n".join(
                 f"• {item.asset}: متاح {item.free:f} | محجوز {item.locked:f}"
                 for item in nonzero[:30]
             )
         await message.answer(
-            "🏦 قراءة حساب Binance (Read Only)\\n"
-            "هذه بيانات الحساب الحقيقي وليست رأس مال المحفظة التجريبية.\\n\\n"
-            f"{balances_text}\\n\\n"
+            "🏦 قراءة حساب Binance (Read Only)\n"
+            "هذه بيانات الحساب الحقيقي وليست رأس مال المحفظة التجريبية.\n\n"
+            f"{balances_text}\n\n"
             "🔒 لا توجد أوامر تداول أو سحب مفعّلة في هذا النظام."
         )
 

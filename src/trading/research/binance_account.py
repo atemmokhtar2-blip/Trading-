@@ -15,7 +15,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from trading.research.binance_public import BinanceDataError
+from trading.research.binance_public import BinanceDataError, BinancePublicClient
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +30,75 @@ class SpotAccountSnapshot:
     account_type: str
     update_time_ms: int
     balances: tuple[AccountBalance, ...]
+
+
+class BinanceAccountError(BinanceDataError):
+    """Safe, user-displayable diagnosis for a failed authenticated account read."""
+
+    def __init__(self, category: str, user_message: str, code: int | None = None) -> None:
+        super().__init__(user_message)
+        self.category = category
+        self.user_message = user_message
+        self.code = code
+
+
+def _account_error(code: int | None, http_status: int | None = None) -> BinanceAccountError:
+    messages = {
+        -2014: (
+            "invalid_key",
+            "🔑 مفتاح API غير صحيح أو بصيغة غير مدعومة. راجع API Key ونوع المفتاح.",
+        ),
+        -2015: (
+            "key_ip_or_permission",
+            "🔒 Binance رفض المفتاح: قد يكون المفتاح غير صحيح، أو عنوان IP غير مسموح، "
+            "أو صلاحية القراءة غير مفعّلة. راجع API Management وقيود IP.",
+        ),
+        -1022: (
+            "signature",
+            "✍️ توقيع الطلب غير صحيح. راجع API Secret وتأكد أن المفتاح من نوع HMAC.",
+        ),
+        -1021: (
+            "timestamp",
+            "⏱️ توقيت الطلب غير متزامن مع Binance. أعد المحاولة وراجع مزامنة وقت خادم Railway.",
+        ),
+        -1003: (
+            "rate_limit",
+            "🚦 تم تجاوز حد طلبات Binance مؤقتًا. انتظر قليلًا ثم أعد المحاولة.",
+        ),
+        -1001: (
+            "exchange_unavailable",
+            "📡 خادم Binance غير متاح حاليًا. حاول مرة أخرى بعد قليل.",
+        ),
+        -1006: (
+            "exchange_unavailable",
+            "📡 لم يصل رد مؤكد من Binance. حاول مرة أخرى بعد قليل.",
+        ),
+        -1007: (
+            "exchange_timeout",
+            "⌛ انتهت مهلة استجابة Binance. حاول مرة أخرى بعد قليل.",
+        ),
+    }
+    if code in messages:
+        category, message = messages[code]
+        return BinanceAccountError(category, message, code)
+    if http_status == 403:
+        return BinanceAccountError(
+            "http_403",
+            "🌐 Binance رفض الاتصال (HTTP 403). راجع قيود IP وإمكانية وصول Railway إلى Binance.",
+            code,
+        )
+    if http_status == 429:
+        return BinanceAccountError(
+            "rate_limit",
+            "🚦 Binance طلب تقليل عدد المحاولات. انتظر قليلًا ثم أعد المحاولة.",
+            code,
+        )
+    suffix = f" (كود Binance: {code})" if code is not None else ""
+    return BinanceAccountError(
+        "exchange_error",
+        f"⚠️ Binance رفض طلب قراءة الحساب بسبب غير مصنّف{suffix}. أرسل كود الخطأ للدعم.",
+        code,
+    )
 
 
 class BinanceReadOnlyAccountClient:
@@ -55,9 +124,15 @@ class BinanceReadOnlyAccountClient:
 
     def _get_account_payload(self) -> dict[str, Any]:
         """Call the signed GET /api/v3/account endpoint; no other private route exists."""
-        from trading.research.binance_public import BinancePublicClient
+        try:
+            timestamp = BinancePublicClient(self._base_url, self._timeout).server_time_ms()
+        except BinanceDataError as exc:
+            raise BinanceAccountError(
+                "connection",
+                "📡 تعذر الاتصال بخدمة Binance للحصول على توقيت الخادم. "
+                "تحقق من اتصال Railway وحاول مرة أخرى.",
+            ) from exc
 
-        timestamp = BinancePublicClient(self._base_url, self._timeout).server_time_ms()
         params = {"recvWindow": 5000, "timestamp": timestamp}
         query = urlencode(params)
         signature = hmac.new(
@@ -75,13 +150,32 @@ class BinanceReadOnlyAccountClient:
         try:
             with urlopen(request, timeout=self._timeout) as response:
                 payload = json.loads(response.read().decode("utf-8"))
-        except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError) as exc:
-            # Never include the request URL, headers, API key, or secret in errors.
-            raise BinanceDataError(
-                f"Binance authenticated read failed: {type(exc).__name__}"
+        except HTTPError as exc:
+            code: int | None = None
+            try:
+                error_payload = json.loads(exc.read().decode("utf-8"))
+                if isinstance(error_payload, dict) and isinstance(error_payload.get("code"), int):
+                    code = error_payload["code"]
+            except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+                pass
+            raise _account_error(code, exc.code) from exc
+        except (URLError, TimeoutError, OSError) as exc:
+            raise BinanceAccountError(
+                "connection",
+                "📡 فشل الاتصال بخوادم Binance من Railway. تحقق من الشبكة ثم أعد المحاولة.",
             ) from exc
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise BinanceAccountError(
+                "invalid_response",
+                "⚠️ وصل رد غير مفهوم من Binance. حاول مرة أخرى، وإذا استمرت المشكلة أرسل السجلات.",
+            ) from exc
+        if isinstance(payload, dict) and isinstance(payload.get("code"), int):
+            raise _account_error(payload["code"])
         if not isinstance(payload, dict) or "balances" not in payload:
-            raise BinanceDataError("Unexpected Binance account response")
+            raise BinanceAccountError(
+                "invalid_response",
+                "⚠️ رد Binance لا يحتوي على بيانات الحساب المتوقعة. حاول مرة أخرى.",
+            )
         return payload
 
     def account_snapshot(self) -> SpotAccountSnapshot:
