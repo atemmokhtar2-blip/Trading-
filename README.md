@@ -17,7 +17,7 @@ A research-first, risk-controlled trading system designed to run entirely on Rai
 ## Initial technology and deployment choices
 
 - Python 3.12+ for the research and application core.
-- Binance Spot is the first exchange integration target. Futures, margin, leverage, and short selling are out of scope.
+- Binance Spot is the first exchange integration target. The first supported market set is USDT-quoted spot pairs; Futures, margin, leverage, and short selling are out of scope.
 - Railway hosts the complete application: Telegram interface, trading worker, PostgreSQL, and operational health checks.
 - Binance market data and exchange APIs are accessed over HTTPS/WebSocket from Railway; no desktop terminal or Windows host is required.
 - Public market data does not require API credentials. Testnet credentials will only be introduced when the isolated Testnet adapter is implemented.
