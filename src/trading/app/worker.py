@@ -4,8 +4,6 @@ This module intentionally delegates to the unified app. Both Telegram polling
 and the heartbeat therefore run in the same process and share one DB pool.
 """
 
-from __future__ import annotations
-
 import asyncio
 import logging
 
