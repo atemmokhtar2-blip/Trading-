@@ -90,9 +90,17 @@ def build_dispatcher(db: Database, settings: Settings) -> Dispatcher:
             snapshot = await asyncio.to_thread(client.account_snapshot)
         except BinanceAccountError as exc:
             logger.warning(
-                "Binance account read failed: category=%s code=%s",
+                "Binance account read failed stage=%s category=%s code=%s "
+                "host=%s exception=%s reason_type=%s errno=%s http_status=%s elapsed_ms=%s",
+                exc.stage,
                 exc.category,
                 exc.code,
+                exc.host,
+                exc.exception_type,
+                exc.reason_type,
+                exc.errno,
+                exc.http_status,
+                exc.elapsed_ms,
             )
             await message.answer(
                 "❌ فشل الاتصال بحساب Binance\n\n"
