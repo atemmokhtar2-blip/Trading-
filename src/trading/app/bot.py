@@ -99,7 +99,7 @@ def build_dispatcher(db: Database, settings: Settings) -> Dispatcher:
             )
             return
         except (BinanceDataError, ValueError) as exc:
-            logger.warning("Binance account read failed: category=unexpected error=%s", type(exc).__name__)
+            logger.warning(\n                "Binance account read failed: category=unexpected error=%s",\n                type(exc).__name__,\n            )
             await message.answer(
                 "⚠️ حدث خطأ غير متوقع أثناء قراءة حساب Binance. "
                 "راجع سجلات Railway وأرسل وقت المحاولة للدعم."
