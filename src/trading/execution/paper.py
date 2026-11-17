@@ -7,7 +7,7 @@ fills into the portfolio ledger; it has no exchange, network, persistence, or AI
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import StrEnum
 from typing import Final
@@ -295,13 +295,14 @@ class PaperExecutionEngine:
         ):
             raise ValueError("decision_price must be a finite positive Decimal")
         if intent.side is IntentSide.BUY:
-            if intent.stop_price is None or not intent.stop_price.is_finite() \
+            if not isinstance(intent.stop_price, Decimal) or not intent.stop_price.is_finite() \
                     or intent.stop_price <= ZERO:
                 raise ValueError("BUY intent requires a finite positive protective stop")
             if intent.stop_price >= intent.decision_price:
                 raise ValueError("BUY stop must be below decision price")
             if intent.target_price is not None and (
-                not intent.target_price.is_finite()
+                not isinstance(intent.target_price, Decimal)
+                or not intent.target_price.is_finite()
                 or intent.target_price <= intent.decision_price
             ):
                 raise ValueError("BUY target must be above decision price")
