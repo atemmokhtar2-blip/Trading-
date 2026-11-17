@@ -23,6 +23,8 @@ class Settings:
     admin_telegram_id: int | None = None
     trading_mode: str = "paper"
     initial_paper_balance: str = "1000"
+    binance_api_key: str | None = None
+    binance_api_secret: str | None = None
 
     @classmethod
     def from_env(cls, require_telegram: bool = False) -> Settings:
@@ -48,10 +50,18 @@ class Settings:
             raise ConfigurationError(
                 "INITIAL_PAPER_BALANCE must be a finite positive number"
             ) from exc
+        api_key = os.getenv("BINANCE_API_KEY", "").strip() or None
+        api_secret = os.getenv("BINANCE_API_SECRET", "").strip() or None
+        if bool(api_key) != bool(api_secret):
+            raise ConfigurationError(
+                "BINANCE_API_KEY and BINANCE_API_SECRET must be configured together"
+            )
         return cls(
             database_url=_required("DATABASE_URL"),
             telegram_bot_token=token,
             admin_telegram_id=admin_id,
             trading_mode=mode,
             initial_paper_balance=balance,
+            binance_api_key=api_key,
+            binance_api_secret=api_secret,
         )

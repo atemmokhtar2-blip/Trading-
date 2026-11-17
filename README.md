@@ -30,7 +30,7 @@ The current scaffold is deployed as **one Railway service**. Start it with `pyth
 
 Set `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `ADMIN_TELEGRAM_ID`, and `TRADING_MODE=paper` in Railway Variables. The database is Neon, not a second Railway service.
 
-Binance credentials are deliberately not read by this release: public market data needs no key, and authenticated Testnet execution is not implemented. Never paste secrets into GitHub or chat.
+Optional account-read integration: set `BINANCE_API_KEY` and `BINANCE_API_SECRET` together as Railway Variables. Create the Binance key with **Read Only** permission only. The authenticated adapter is restricted to signed `GET /api/v3/account`; it has no order, transfer, withdrawal, or account-changing methods. Public market-data collection continues to work without credentials. Never paste secrets into GitHub or chat, and never enable Spot Trading or withdrawals for this key.
 
 ## Repository layout
 
