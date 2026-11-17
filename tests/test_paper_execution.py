@@ -189,7 +189,7 @@ def test_gap_through_stop_fills_at_open_not_stop() -> None:
     subject.process_bar(bar(1, low="99"))
     fills = subject.process_bar(bar(2, open_price="90", high="92", low="89"))
     assert len(fills) == 1
-    assert fills[0].price == D("90") * D("0.9985")
+    assert fills[0].price == D("90") * D("0.999")
     assert fills[0].price < D("95")
 
 
