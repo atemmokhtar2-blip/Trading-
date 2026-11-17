@@ -1,39 +1,53 @@
-# Architecture — initial decisions
+# Architecture — Binance-first, Railway-hosted
 
 ## Product direction
 
-The first release is a private, single-account research and demo-trading system. The design must not assume that it will remain single-user: account identity, strategy configuration, audit events, and execution ownership must have explicit boundaries before multi-user subscriptions are introduced.
+The first release is a private, single-account research and paper-trading system. The complete application is intended to run on Railway. Binance Spot is the first exchange target, but domain logic must not depend on Binance-specific SDK objects or API responses.
 
 ## Components and trust boundaries
 
-1. **Domain core (Python):** deterministic risk policy, typed trade proposals, strategy interfaces, and state transitions. No network or broker SDK imports.
+1. **Domain core (Python):** deterministic risk policy, typed trade intents, portfolio accounting, and state transitions. No network, Telegram, or exchange SDK imports.
 2. **Research layer:** historical data normalization, feature calculations, backtesting, and walk-forward evaluation. Research output is not automatically executable.
-3. **AI analysis adapter:** optional provider interface. AI output is untrusted input; it can annotate or rank a candidate but cannot override domain rules, risk limits, or execution permissions.
-4. **MT5 adapter (Windows):** the only component allowed to communicate with the MetaTrader terminal. It validates symbol metadata, volume steps, tick sizes, stops, filling mode, and account state.
-5. **Control plane (Railway-compatible):** Telegram/API interface, PostgreSQL, configuration delivery, and monitoring. It does not host the Windows MT5 terminal.
-6. **Observability:** structured logs, immutable decision/audit records, health checks, and alerts.
+3. **Market-data adapter:** obtains public Binance Spot market data over HTTPS/WebSocket, validates and normalizes it, and emits domain bars/quotes. Public market-data ingestion must work without API credentials.
+4. **Exchange adapter (Binance Spot):** isolated integration boundary for exchange metadata, account snapshots, Testnet order submission, order-status lookup, and reconciliation. The first authenticated environment is Spot Testnet only. Production endpoints and live order submission remain disabled.
+5. **AI analysis adapter:** optional provider interface. AI output is untrusted input; it can annotate or rank a candidate but cannot override domain rules, risk limits, or execution permissions.
+6. **Railway application services:** the Telegram bot service and trading worker run from the same repository as separate Railway services/processes. PostgreSQL is hosted in the same Railway project. No Windows machine or desktop trading terminal is required.
+7. **Observability:** structured logs, immutable decision/audit records, health checks, readiness checks, and alerts.
 
-## Initial deployment topology
+## Initial Railway topology
 
-- Local development and offline tests first.
-- Windows host/VPS for the MT5 terminal adapter when integration begins.
-- Railway only for services that are compatible with its Linux/container runtime, after costs and operational requirements are reviewed.
-- Secrets are injected through environment/secret management and never committed.
+- **bot service:** receives Telegram updates (webhook or supported polling mode), handles user/operator commands, and reads durable state.
+- **trading-worker service:** owns market-data subscriptions, strategy scheduling, risk evaluation, simulation, and later Testnet execution/reconciliation.
+- **PostgreSQL:** stores configuration, strategy/run versions, audit events, order intents, exchange order identifiers, and portfolio snapshots.
+- The worker must use a database-backed lease or equivalent distributed lock so only one active worker owns a given account/strategy execution stream. A restart must not duplicate an order.
+- Both services must expose health/readiness behavior suitable for Railway restarts and deployments. Graceful shutdown must stop new work and persist/reconcile in-flight state.
+- Railway variables hold runtime configuration and secrets. Secrets are never written to Git, database audit payloads, or logs.
+
+## Binance integration policy
+
+- Start with Binance Spot only. Margin, Futures, leverage, and short selling are excluded from the initial product.
+- Public market data is unauthenticated and must be separated from private account/order credentials.
+- The first authenticated exchange environment is Binance Spot Testnet. Testnet base URLs must be explicit configuration, not guessed or silently switched.
+- API keys must have the minimum permissions required. Withdrawal permission must never be enabled. Restrict key IP access where the exchange/account setup supports it.
+- Production credentials and production order endpoints are not accepted by the initial application configuration.
+- Respect exchange rate limits, timestamp/signature requirements, symbol filters, quantity/price increments, minimum notional, and order-state transitions.
+- A request timeout does not mean an order failed. Reconcile by client order identifier and exchange order state before any retry.
+- WebSocket streams are not the sole source of truth for account/order state; periodically reconcile against REST snapshots.
 
 ## Execution safety invariants
 
-- The risk gate runs immediately before every order submission.
-- No order is submitted without a valid, fresh account snapshot and explicit stop-loss calculation.
-- Unknown order outcomes are reconciled against broker positions/orders before any retry.
+- The deterministic risk gate runs immediately before every order submission.
+- No order is submitted without a fresh market/account snapshot and a valid protective-stop/risk calculation appropriate to the instrument.
+- Unknown order outcomes are reconciled against exchange orders and balances before any retry.
 - Every order has a stable strategy identifier and unique client-side correlation/idempotency key where supported.
-- A kill switch must block new entries even if AI, Telegram, or strategy services are unavailable.
-- Closing or reducing exposure must remain possible when new entries are disabled.
-- Manual positions must not be modified unless explicitly configured and authorized.
+- A kill switch blocks new entries even if AI, Telegram, or strategy services are unavailable.
+- Closing or reducing exposure remains possible when new entries are disabled.
+- The system never assumes an exchange accepted an order merely because the request was sent.
 
 ## Future multi-user path
 
-Before public subscriptions, add tenant-scoped identities, per-user broker credential isolation, authorization checks on every request, subscription entitlements, billing webhooks with replay protection, rate limits, audit trails, and resource quotas. No shared global account state or shared credentials.
+Before public subscriptions, add tenant-scoped identities, per-user credential isolation, authorization checks on every request, subscription entitlements, billing webhook replay protection, rate limits, audit trails, and resource quotas. No shared global account state or shared credentials.
 
 ## Why this architecture
 
-The design keeps deterministic safety rules independent of AI and broker APIs. It also lets research, simulation, and unit tests run on machines without MetaTrader 5 installed. This reduces coupling and makes later migration to a public service safer.
+The domain core stays deterministic and exchange-independent. Binance-specific behavior is confined to adapters, while Railway runs the bot, worker, and database without a desktop terminal or separate Windows host. Research and simulation remain executable offline.

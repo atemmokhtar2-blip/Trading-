@@ -1,6 +1,6 @@
 """Pure, deterministic pre-trade risk checks.
 
-This module is intentionally independent of MetaTrader 5, network services, and AI.
+This module is intentionally independent of exchanges, network services, and AI.
 All monetary values use Decimal to avoid binary floating-point surprises.
 """
 
