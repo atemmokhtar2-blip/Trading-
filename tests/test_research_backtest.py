@@ -69,3 +69,22 @@ def test_chronological_split_is_not_randomized() -> None:
 def test_strategy_periods_must_be_ordered() -> None:
     with pytest.raises(ValueError):
         StrategySpec("bad", 20, 10)
+
+
+def test_symbol_evaluation_uses_chronological_train_and_holdout() -> None:
+    from trading.research.trainer import evaluate_symbol
+
+    prices = [
+        str(100 + i * 2) if i < 45 else str(190 - (i - 45))
+        for i in range(120)
+    ]
+    results = evaluate_symbol(
+        "BTCUSDT",
+        make_bars(prices),
+        Decimal("10"),
+        strategies=(StrategySpec("fast-slow", 5, 12),),
+    )
+    assert len(results) == 1
+    assert results[0].allocated_capital == Decimal("10")
+    assert results[0].train.bars_tested == 85
+    assert results[0].holdout.bars_tested == 36
