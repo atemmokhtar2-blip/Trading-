@@ -128,7 +128,7 @@ class PaperExecutionEngine:
         self,
         ledger: PortfolioLedger,
         costs: ExecutionCosts,
-        risk_limits: RiskLimits = RiskLimits(),
+        risk_limits: RiskLimits | None = None,
         *,
         trading_enabled: bool = True,
     ) -> None:
@@ -138,7 +138,7 @@ class PaperExecutionEngine:
             raise TypeError("costs must be explicitly configured")
         self._ledger = ledger
         self._costs = costs
-        self._risk_limits = risk_limits
+        self._risk_limits = risk_limits if risk_limits is not None else RiskLimits()
         self._trading_enabled = trading_enabled
         self._period_start_equity = ledger.snapshot().equity
         self._latest_bars: dict[str, MarketBar] = {}
