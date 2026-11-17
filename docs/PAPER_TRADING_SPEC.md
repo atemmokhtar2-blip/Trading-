@@ -2,27 +2,27 @@
 
 ## Status
 
-Design contract for the first autonomous simulation milestone. This milestone is simulation-only. It must not connect to a broker, request credentials, or submit live orders.
+Design contract for the first autonomous simulation milestone. This milestone is simulation-only. It must not request exchange credentials, access private account endpoints, or submit exchange orders. Public market data may be added through a replaceable adapter after its validation contract is implemented.
 
 ## Goal
 
 Create a deterministic, auditable paper-trading environment in which the system can:
 1. Receive validated market bars from a replaceable data source.
 2. Ask a strategy for a trade intent.
-3. pass every intent through the existing deterministic risk policy.
+3. Pass every intent through the existing deterministic risk policy.
 4. Simulate fills using an explicit execution model.
 5. Maintain a virtual cash/equity/position ledger.
 6. Record every input, decision, rejection, fill, fee, and state transition.
 7. Replay the same inputs and obtain the same results.
 
-The first implementation is deliberately instrument- and broker-independent.
+The first implementation is exchange-independent. Binance Spot is the first planned market-data and Testnet integration target, not a dependency of the domain core.
 
 ## Non-goals
 
-- No real-money trading or broker connectivity.
-- No MetaTrader 5 dependency.
+- No real-money trading or authenticated exchange connectivity in this milestone.
+- No production Binance endpoints or live orders.
 - No AI-generated orders or AI-controlled risk settings.
-- No leverage, short selling, derivatives, martingale, grid, or averaging down in the first simulator.
+- No leverage, short selling, margin, Futures, martingale, grid, or averaging down in the first simulator.
 - No claim that simulated results predict live profitability.
 - No strategy optimization until the simulator's accounting and execution semantics are tested.
 
@@ -38,17 +38,17 @@ A bar is immutable and contains:
 - volume where available;
 - source identifier.
 
-Validation must reject non-finite or non-positive OHLC values, impossible OHLC relationships, negative volume, duplicate/out-of-order timestamps, and incomplete bars where the source can identify them. The engine must never silently forward-fill missing market prices.
+Validation must reject non-finite or non-positive OHLC values, impossible OHLC relationships, negative volume, duplicate/out-of-order timestamps, and incomplete bars where the source can identify them. The engine must never silently forward-fill missing market prices. Exchange adapters normalize native symbols and timestamps into this domain contract.
 
 ### Strategy
 
-A strategy receives only the market history available at the decision timestamp and its own explicit state. It returns an intent, not an executable broker order. It cannot access future bars, the account ledger internals, secrets, network services, or risk configuration.
+A strategy receives only the market history available at the decision timestamp and its own explicit state. It returns an intent, not an executable exchange order. It cannot access future bars, the account ledger internals, secrets, network services, or risk configuration.
 
 The first strategy should be a transparent baseline used to test plumbing, not advertised as profitable. Strategy versions and parameters must be recorded with every decision.
 
 ### Risk gate
 
-The existing risk policy remains deterministic and independent of market data providers, AI, and execution adapters. The simulator must calculate the proposed loss from entry, stop distance, quantity, and instrument contract assumptions before asking the risk gate. An intent without a valid protective stop is rejected.
+The existing risk policy remains deterministic and independent of market data providers, AI, and execution adapters. The simulator must calculate the proposed loss from entry, stop distance, quantity, and instrument assumptions before asking the risk gate. An intent without a valid protective stop is rejected.
 
 Risk checks must use current virtual equity and current exposure. Rejections are first-class audit events. Risk defaults remain engineering placeholders until instrument specifications and costs are known.
 
@@ -97,12 +97,12 @@ A passing unit-test suite proves implementation behavior only. It does not prove
 
 ## Promotion policy
 
-The system stays in simulation by default. No live adapter may be added until:
+The system stays in simulation by default. Authenticated Binance Spot Testnet integration may be added only after:
 1. the simulator and accounting tests pass;
 2. historical data quality and costs are independently checked;
 3. out-of-sample and walk-forward evaluation are completed;
 4. stress and failure tests are documented;
-5. demo forward testing is completed;
-6. a separate explicit review approves any later broker integration.
+5. Railway restart, locking, and persistence behavior are tested;
+6. a separate explicit review approves the Testnet adapter.
 
-Live execution remains disabled by default even after those gates.
+Production/live execution remains disabled by default and requires a separate explicit decision after additional review.
