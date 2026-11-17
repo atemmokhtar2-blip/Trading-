@@ -37,9 +37,14 @@ def make_bars(closes: list[str]) -> list[MarketBar]:
 
 
 def test_backtest_uses_completed_bars_and_charges_costs() -> None:
-    prices = [str(100 + (i * 2 if i < 45 else 90 - i)) for i in range(120)]
+    prices = [
+        str(100 + i * 2) if i < 45 else str(190 - (i - 45))
+        for i in range(120)
+    ]
     report = run_ema_backtest(
-        make_bars(prices), Decimal("100"), StrategySpec("fast-slow", 5, 12),
+        make_bars(prices),
+        Decimal("100"),
+        StrategySpec("fast-slow", 5, 12),
         CostAssumptions(Decimal("5"), Decimal("5"), Decimal("10")),
     )
     assert report.bars_tested == 120
@@ -50,7 +55,9 @@ def test_backtest_uses_completed_bars_and_charges_costs() -> None:
 
 def test_backtest_rejects_insufficient_history() -> None:
     with pytest.raises(ValueError):
-        run_ema_backtest(make_bars(["100"] * 30), Decimal("100"), StrategySpec("x", 5, 20))
+        run_ema_backtest(
+            make_bars(["100"] * 30), Decimal("100"), StrategySpec("x", 5, 20)
+        )
 
 
 def test_chronological_split_is_not_randomized() -> None:
