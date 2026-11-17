@@ -91,8 +91,14 @@ def evaluate_top_universe(
 
     Per-symbol runs are isolated research comparisons, not one shared-cash portfolio.
     """
-    if not initial_capital.is_finite() or initial_capital <= 0:
-        raise ValueError("initial_capital must be finite and positive")
+    if (
+        not isinstance(initial_capital, Decimal)
+        or not initial_capital.is_finite()
+        or initial_capital <= 0
+    ):
+        raise ValueError("initial_capital must be a finite positive Decimal")
+    if not 1 <= symbol_count <= 50:
+        raise ValueError("symbol_count must be between 1 and 50")
     assumptions = costs or CostAssumptions()
     selected_strategies = strategies or DEFAULT_STRATEGIES
     symbols = client.top_usdt_symbols(symbol_count)
