@@ -5,15 +5,19 @@ import pytest
 from trading.portfolio.ledger import Fill, FillSide, PortfolioLedger
 
 D = Decimal
+TWO = D("2")
+ONE_HUNDRED = D("100")
+ONE_HUNDRED_TEN = D("110")
+ONE = D("1")
 
 
 def buy(
     fill_id: str = "buy-1",
     *,
     instrument: str = "EURUSD",
-    quantity: Decimal = D("2"),
-    price: Decimal = D("100"),
-    fee: Decimal = D("1"),
+    quantity: Decimal = TWO,
+    price: Decimal = ONE_HUNDRED,
+    fee: Decimal = ONE,
 ) -> Fill:
     return Fill(fill_id, instrument, FillSide.BUY, quantity, price, fee)
 
@@ -22,9 +26,9 @@ def sell(
     fill_id: str = "sell-1",
     *,
     instrument: str = "EURUSD",
-    quantity: Decimal = D("2"),
-    price: Decimal = D("110"),
-    fee: Decimal = D("1"),
+    quantity: Decimal = TWO,
+    price: Decimal = ONE_HUNDRED_TEN,
+    fee: Decimal = ONE,
 ) -> Fill:
     return Fill(fill_id, instrument, FillSide.SELL, quantity, price, fee)
 
@@ -37,14 +41,14 @@ def test_buy_updates_cash_position_and_equity() -> None:
     assert state.market_value == D("200")
     assert state.equity == D("999")
     assert state.total_fees == D("1")
-    assert state.positions[0].quantity == D("2")
-    assert state.positions[0].average_entry_price == D("100")
+    assert state.positions[0].quantity == TWO
+    assert state.positions[0].average_entry_price == ONE_HUNDRED
 
 
 def test_mark_to_market_updates_unrealized_pnl_and_equity() -> None:
     ledger = PortfolioLedger(D("1000"))
     ledger.apply_fill(buy())
-    ledger.mark_to_market("EURUSD", D("110"))
+    ledger.mark_to_market("EURUSD", ONE_HUNDRED_TEN)
     state = ledger.snapshot()
     assert state.market_value == D("220")
     assert state.unrealized_pnl == D("19")
@@ -68,7 +72,7 @@ def test_full_sell_realizes_profit_net_of_entry_and_exit_fees() -> None:
 def test_partial_sell_allocates_entry_fee_proportionally() -> None:
     ledger = PortfolioLedger(D("1000"))
     ledger.apply_fill(buy(quantity=D("4"), fee=D("4")))
-    ledger.apply_fill(sell(quantity=D("1"), price=D("110"), fee=D("1")))
+    ledger.apply_fill(sell(quantity=ONE, price=ONE_HUNDRED_TEN, fee=ONE))
     state = ledger.snapshot()
     assert state.positions[0].quantity == D("3")
     assert state.positions[0].remaining_entry_fees == D("3")
@@ -78,7 +82,7 @@ def test_partial_sell_allocates_entry_fee_proportionally() -> None:
 
 def test_average_entry_price_is_weighted_across_buys() -> None:
     ledger = PortfolioLedger(D("1000"))
-    ledger.apply_fill(buy(quantity=D("1"), price=D("100"), fee=D("0")))
+    ledger.apply_fill(buy(quantity=ONE, price=ONE_HUNDRED, fee=D("0")))
     ledger.apply_fill(buy("buy-2", quantity=D("3"), price=D("120"), fee=D("0")))
     position = ledger.snapshot().positions[0]
     assert position.quantity == D("4")
@@ -99,7 +103,7 @@ def test_duplicate_fill_id_with_different_payload_is_rejected() -> None:
     ledger = PortfolioLedger(D("1000"))
     ledger.apply_fill(buy())
     with pytest.raises(ValueError, match="different fill data"):
-        ledger.apply_fill(buy(quantity=D("1")))
+        ledger.apply_fill(buy(quantity=ONE))
     assert len(ledger.events) == 1
 
 
@@ -108,14 +112,14 @@ def test_cannot_sell_more_than_open_quantity() -> None:
     ledger.apply_fill(buy())
     with pytest.raises(ValueError, match="exceeds"):
         ledger.apply_fill(sell(quantity=D("3")))
-    assert ledger.snapshot().positions[0].quantity == D("2")
+    assert ledger.snapshot().positions[0].quantity == TWO
     assert len(ledger.events) == 1
 
 
 def test_cannot_buy_without_enough_cash_including_fee() -> None:
     ledger = PortfolioLedger(D("100"))
     with pytest.raises(ValueError, match="insufficient cash"):
-        ledger.apply_fill(buy(quantity=D("1"), price=D("100"), fee=D("1")))
+        ledger.apply_fill(buy(quantity=ONE, price=ONE_HUNDRED, fee=ONE))
     assert ledger.snapshot().cash == D("100")
     assert ledger.events == ()
 
