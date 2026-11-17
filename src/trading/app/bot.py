@@ -10,7 +10,8 @@ from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
 from trading.app.config import Settings
 from trading.app.database import Database
-from trading.research.binance_account import BinanceDataError, BinanceReadOnlyAccountClient
+from trading.research.binance_account import BinanceReadOnlyAccountClient
+from trading.research.binance_public import BinanceDataError
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)
