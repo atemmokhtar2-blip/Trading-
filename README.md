@@ -31,7 +31,7 @@ A research-first, risk-controlled trading system designed to run entirely on Rai
 - **PostgreSQL:** durable configuration, run metadata, audit events, and portfolio state.
 - Both application services are deployed from this repository and configured with separate Railway start commands and environment variables. The database is provisioned inside the same Railway project.
 
-The initial paper-trading milestone does not need Binance API keys. Secrets are added only for a later Testnet stage and are stored as Railway variables, never committed.
+The current application scaffold requires `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, and `ADMIN_TELEGRAM_ID`. Binance credentials are deliberately not read by this release: public market data needs no key, and authenticated Testnet execution is not implemented. Never paste secrets into GitHub or chat.
 
 ## Repository layout
 
@@ -40,6 +40,8 @@ src/trading/
   risk/          deterministic risk policy
   portfolio/     decimal-based portfolio ledger
   execution/     deterministic paper execution engine
+  app/           Telegram bot, PostgreSQL access, paper-worker heartbeat
+migrations/       idempotent PostgreSQL schema
 tests/            offline unit tests
 docs/             architecture, safety, and validation decisions
 ```
@@ -59,4 +61,4 @@ mypy src
 
 ## Current milestone
 
-**Milestone 2 — paper execution:** deterministic risk policy, virtual portfolio ledger, and next-bar paper execution with explicit spread/slippage/commission, risk gating, and conservative stop/target handling. Next: validated market-data ingestion, deterministic replay, and durable Railway/PostgreSQL state. Binance Testnet, Railway deployment, and live trading are separate milestones and are not yet implemented.
+**Milestone 2 — paper execution:** deterministic risk policy, virtual portfolio ledger, and next-bar paper execution with explicit spread/slippage/commission, risk gating, and conservative stop/target handling. Telegram control bot and PostgreSQL schema/connection are scaffolded on the feature branch. The worker currently reports a heartbeat only; it does not ingest prices or trade. Next: add validated Binance public market data, deterministic strategy/replay, persist paper ledger events, then deploy and verify on Railway. Binance Testnet and live trading are not implemented.
