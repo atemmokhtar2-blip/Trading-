@@ -11,9 +11,11 @@ Both tasks share one application process and one Neon PostgreSQL connection pool
 ### Railway settings
 
 - Build command: `pip install .`
-- Start command: `python -m trading.app.main`
+- Recommended start command: `python -m trading.app.main`
 - Replicas: **1**
 - No separate worker service is needed for this release.
+
+**Compatibility:** if the Railway dashboard still has the old start command `python -m trading.app.worker`, this release keeps that command working by forwarding it to the same unified application. You can either leave it temporarily or change it to the recommended command above. Do not create a second Railway service.
 
 ### Variables
 
