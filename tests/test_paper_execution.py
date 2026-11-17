@@ -109,7 +109,7 @@ def test_stale_signal_is_rejected() -> None:
 
 def test_risk_gate_rejects_entry_without_creating_fill() -> None:
     subject = engine()
-    intent = buy_intent(subject, quantity="2", stop="90")
+    intent = buy_intent(subject, quantity="6", stop="90")
     subject.submit(intent)
     assert subject.process_bar(bar(1))[0:1] == ()
     assert subject.events[-1].kind == "INTENT_REJECTED"
@@ -125,12 +125,14 @@ def test_stop_must_remain_below_actual_next_bar_fill() -> None:
 
 
 def test_buy_without_stop_is_invalid() -> None:
+    subject = engine()
+    subject.process_bar(bar(0))
+    invalid = TradeIntent(
+        "bad", "BTCUSDT", IntentSide.BUY, D("1"), bar(0).timestamp,
+        D("101"), None,
+    )
     with pytest.raises(ValueError, match="requires"):
-        TradeIntent(
-            "bad", "BTCUSDT", IntentSide.BUY, D("1"), bar(0).timestamp,
-            D("101"), None,
-        )
-        # Validation is performed when submitting, not by constructing the DTO.
+        subject.submit(invalid)
 
 
 def test_kill_switch_blocks_entries_but_not_position_exits() -> None:
