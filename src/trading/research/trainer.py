@@ -85,7 +85,7 @@ def evaluate_top_universe(
     interval: str = "1h",
     candle_limit: int = 1000,
     strategies: Sequence[StrategySpec] = DEFAULT_STRATEGIES,
-    costs: CostAssumptions = CostAssumptions(),
+    costs: CostAssumptions | None = None,
 ) -> ResearchRun:
     """Fetch and evaluate top pairs sequentially to respect public API rate limits.
 
