@@ -49,7 +49,7 @@ def test_rejects_when_daily_loss_limit_is_reached() -> None:
 def test_rejects_when_weekly_loss_limit_is_reached() -> None:
     account = snapshot(
         equity=Decimal("1940"),
-        day_start_equity=Decimal("2000"),
+        day_start_equity=Decimal("1940"),
         week_start_equity=Decimal("2000"),
     )
 
@@ -61,8 +61,8 @@ def test_rejects_when_weekly_loss_limit_is_reached() -> None:
 def test_rejects_when_monthly_loss_limit_is_reached() -> None:
     account = snapshot(
         equity=Decimal("1900"),
-        day_start_equity=Decimal("2000"),
-        week_start_equity=Decimal("2000"),
+        day_start_equity=Decimal("1900"),
+        week_start_equity=Decimal("1900"),
         month_start_equity=Decimal("2000"),
     )
 
