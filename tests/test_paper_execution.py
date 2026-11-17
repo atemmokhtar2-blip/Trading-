@@ -23,7 +23,7 @@ def bar(
     open_price: str = "100",
     high: str = "102",
     low: str = "99",
-    close: str = "101",
+    close: str | None = None,
 ) -> MarketBar:
     return MarketBar(
         instrument="BTCUSDT",
@@ -32,7 +32,7 @@ def bar(
         open=D(open_price),
         high=D(high),
         low=D(low),
-        close=D(close),
+        close=D(close if close is not None else open_price),
         volume=D("1"),
     )
 
