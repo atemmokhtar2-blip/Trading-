@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from decimal import Decimal, InvalidOperation
 from dataclasses import dataclass
 
 
@@ -34,10 +35,11 @@ class Settings:
             raise ConfigurationError("ADMIN_TELEGRAM_ID must be an integer") from exc
         balance = os.getenv("INITIAL_PAPER_BALANCE", "1000").strip()
         try:
-            if float(balance) <= 0:
-                raise ValueError
-        except ValueError as exc:
-            raise ConfigurationError("INITIAL_PAPER_BALANCE must be a positive number") from exc
+            parsed_balance = Decimal(balance)
+            if not parsed_balance.is_finite() or parsed_balance <= 0:
+                raise InvalidOperation
+        except (InvalidOperation, ValueError) as exc:
+            raise ConfigurationError("INITIAL_PAPER_BALANCE must be a finite positive number") from exc
         return cls(
             database_url=_required("DATABASE_URL"),
             telegram_bot_token=_required("TELEGRAM_BOT_TOKEN"),
