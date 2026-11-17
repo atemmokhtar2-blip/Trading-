@@ -14,7 +14,7 @@ ONE = D("1")
 def buy(
     fill_id: str = "buy-1",
     *,
-    instrument: str = "EURUSD",
+    instrument: str = "BTCUSDT",
     quantity: Decimal = TWO,
     price: Decimal = ONE_HUNDRED,
     fee: Decimal = ONE,
@@ -25,7 +25,7 @@ def buy(
 def sell(
     fill_id: str = "sell-1",
     *,
-    instrument: str = "EURUSD",
+    instrument: str = "BTCUSDT",
     quantity: Decimal = TWO,
     price: Decimal = ONE_HUNDRED_TEN,
     fee: Decimal = ONE,
@@ -48,7 +48,7 @@ def test_buy_updates_cash_position_and_equity() -> None:
 def test_mark_to_market_updates_unrealized_pnl_and_equity() -> None:
     ledger = PortfolioLedger(D("1000"))
     ledger.apply_fill(buy())
-    ledger.mark_to_market("EURUSD", ONE_HUNDRED_TEN)
+    ledger.mark_to_market("BTCUSDT", ONE_HUNDRED_TEN)
     state = ledger.snapshot()
     assert state.market_value == D("220")
     assert state.unrealized_pnl == D("19")
@@ -126,7 +126,7 @@ def test_cannot_buy_without_enough_cash_including_fee() -> None:
 
 def test_invalid_fill_values_are_rejected_without_mutation() -> None:
     ledger = PortfolioLedger(D("1000"))
-    invalid = Fill("bad", "EURUSD", FillSide.BUY, D("NaN"), D("10"), D("0"))
+    invalid = Fill("bad", "BTCUSDT", FillSide.BUY, D("NaN"), D("10"), D("0"))
     with pytest.raises(ValueError, match="quantity"):
         ledger.apply_fill(invalid)
     assert ledger.snapshot().cash == D("1000")
@@ -142,16 +142,16 @@ def test_initial_cash_must_be_finite_and_positive(cash: Decimal) -> None:
 def test_mark_requires_an_open_position_and_valid_price() -> None:
     ledger = PortfolioLedger(D("1000"))
     with pytest.raises(ValueError, match="without an open position"):
-        ledger.mark_to_market("EURUSD", D("10"))
+        ledger.mark_to_market("BTCUSDT", D("10"))
     ledger.apply_fill(buy())
     with pytest.raises(ValueError, match="mark price"):
-        ledger.mark_to_market("EURUSD", D("NaN"))
+        ledger.mark_to_market("BTCUSDT", D("NaN"))
 
 
 def test_ledger_equity_reconciles_after_partial_and_full_close() -> None:
     ledger = PortfolioLedger(D("2000"))
     ledger.apply_fill(buy(quantity=D("5"), price=D("20"), fee=D("2")))
-    ledger.mark_to_market("EURUSD", D("24"))
+    ledger.mark_to_market("BTCUSDT", D("24"))
     open_state = ledger.snapshot()
     assert open_state.equity == (
         open_state.initial_cash + open_state.realized_pnl + open_state.unrealized_pnl
