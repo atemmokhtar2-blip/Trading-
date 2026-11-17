@@ -28,9 +28,6 @@ class AccountBalance:
 @dataclass(frozen=True, slots=True)
 class SpotAccountSnapshot:
     account_type: str
-    can_trade: bool
-    can_withdraw: bool
-    can_deposit: bool
     update_time_ms: int
     balances: tuple[AccountBalance, ...]
 
@@ -110,9 +107,6 @@ class BinanceReadOnlyAccountClient:
                 raise ValueError("invalid balance")
             return SpotAccountSnapshot(
                 account_type=str(payload.get("accountType", "SPOT")),
-                can_trade=bool(payload.get("canTrade", False)),
-                can_withdraw=bool(payload.get("canWithdraw", False)),
-                can_deposit=bool(payload.get("canDeposit", False)),
                 update_time_ms=int(payload.get("updateTime", 0)),
                 balances=balances,
             )
