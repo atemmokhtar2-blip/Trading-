@@ -70,10 +70,10 @@ def test_http_error_diagnosis_does_not_expose_credentials(
     import io
     from urllib.error import HTTPError
 
-    from trading.research.binance_account import BinanceAccountError, BinancePublicClient
+    from trading.research.binance_account import BinanceAccountError
 
     client = BinanceReadOnlyAccountClient("never-log-this-key", "never-log-this-secret")
-    monkeypatch.setattr(BinancePublicClient, "server_time_ms", lambda self: 123456)
+    monkeypatch.setattr(client, "_server_time_ms", lambda: 123456)
     error_body = b'{"code":-2015,"msg":"Invalid API-key, IP, or permissions for action."}'
 
     def reject_request(*args: object, **kwargs: object) -> None:
@@ -93,3 +93,51 @@ def test_http_error_diagnosis_does_not_expose_credentials(
     assert "قيود IP" in caught.value.user_message
     assert "never-log-this-key" not in str(caught.value)
     assert "never-log-this-secret" not in str(caught.value)
+
+
+
+def test_server_time_dns_failure_has_safe_root_cause_diagnostics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import socket
+    from urllib.error import URLError
+
+    from trading.research.binance_account import BinanceAccountError
+
+    client = BinanceReadOnlyAccountClient("key", "secret")
+
+    def fail_dns(*args: object, **kwargs: object) -> None:
+        raise URLError(socket.gaierror(-2, "Name or service not known"))
+
+    monkeypatch.setattr("trading.research.binance_account.urlopen", fail_dns)
+    with pytest.raises(BinanceAccountError) as caught:
+        client._server_time_ms()
+
+    error = caught.value
+    assert error.category == "dns"
+    assert error.stage == "server_time"
+    assert error.exception_type == "URLError"
+    assert error.reason_type == "gaierror"
+    assert error.errno == -2
+    assert error.host == "api.binance.com"
+    assert error.elapsed_ms is not None
+    assert "Name or service not known" not in str(error)
+
+
+def test_server_time_timeout_is_classified(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from trading.research.binance_account import BinanceAccountError
+
+    client = BinanceReadOnlyAccountClient("key", "secret")
+
+    def timeout(*args: object, **kwargs: object) -> None:
+        raise TimeoutError("sensitive internal detail")
+
+    monkeypatch.setattr("trading.research.binance_account.urlopen", timeout)
+    with pytest.raises(BinanceAccountError) as caught:
+        client._server_time_ms()
+
+    assert caught.value.category == "timeout"
+    assert caught.value.reason_type == "TimeoutError"
+    assert "sensitive internal detail" not in str(caught.value)
