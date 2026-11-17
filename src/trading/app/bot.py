@@ -93,7 +93,9 @@ def build_dispatcher(db: Database, settings: Settings) -> Dispatcher:
 
 
 async def main() -> None:
-    settings = Settings.from_env()
+    settings = Settings.from_env(require_telegram=True)
+    assert settings.telegram_bot_token is not None
+    assert settings.admin_telegram_id is not None
     db = await Database.connect(settings.database_url)
     bot = Bot(token=settings.telegram_bot_token)
     dp = build_dispatcher(db, settings)
