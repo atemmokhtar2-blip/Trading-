@@ -361,6 +361,7 @@ class PaperExecutionEngine:
             return self._market_fill_price(raw, buy=False), "STOP_FILLED"
         if target_hit:
             # Conservative limit assumption: do not grant favorable gap improvement.
+            assert bracket.target_price is not None
             return self._market_fill_price(bracket.target_price, buy=False), "TARGET_FILLED"
         return None, ""
 
