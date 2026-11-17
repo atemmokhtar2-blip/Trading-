@@ -5,9 +5,9 @@ evaluator, not an optimizer or a live trading engine.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Sequence
 
 from trading.execution.paper import MarketBar
 
@@ -86,7 +86,7 @@ def run_ema_backtest(
     bars: Sequence[MarketBar],
     initial_cash: Decimal,
     spec: StrategySpec,
-    costs: CostAssumptions = CostAssumptions(),
+    costs: CostAssumptions | None = None,
     *,
     start_index: int = 0,
 ) -> BacktestReport:
@@ -95,6 +95,7 @@ def run_ema_backtest(
     For a chronological holdout, start_index skips trading until the holdout while
     indicator values continue to use only earlier bars. The holdout starts flat.
     """
+    costs = costs or CostAssumptions()
     if (
         not isinstance(initial_cash, Decimal)
         or not initial_cash.is_finite()
