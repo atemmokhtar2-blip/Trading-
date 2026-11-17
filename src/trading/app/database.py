@@ -11,7 +11,7 @@ class Database:
         self.pool = pool
 
     @classmethod
-    async def connect(cls, dsn: str) -> "Database":
+    async def connect(cls, dsn: str) -> Database:
         pool = await asyncpg.create_pool(dsn=dsn, min_size=1, max_size=5, command_timeout=15)
         db = cls(pool)
         await db.migrate()
@@ -23,7 +23,9 @@ class Database:
         async with self.pool.acquire() as conn:
             await conn.execute(sql)
 
-    async def register_user(self, telegram_id: int, username: str | None, first_name: str | None) -> None:
+    async def register_user(
+        self, telegram_id: int, username: str | None, first_name: str | None
+    ) -> None:
         async with self.pool.acquire() as conn:
             await conn.execute(
                 """INSERT INTO bot_users (telegram_id, username, first_name, last_seen_at)
@@ -45,7 +47,10 @@ class Database:
                     "UPDATE app_control SET entries_paused=$1, updated_at=now() WHERE id=1", paused
                 )
                 await conn.execute(
-                    "INSERT INTO audit_events (actor_telegram_id, event_type, payload) VALUES ($1,$2,$3::jsonb)",
+                    (
+                        "INSERT INTO audit_events "
+                        "(actor_telegram_id, event_type, payload) VALUES ($1,$2,$3::jsonb)"
+                    ),
                     actor_id, "entries_paused" if paused else "entries_resumed",
                     '{"source":"telegram"}',
                 )
@@ -55,8 +60,10 @@ class Database:
             row = await conn.fetchrow(
                 """SELECT c.entries_paused, c.trading_mode,
                    (SELECT count(*) FROM bot_users) AS users,
-                   (SELECT count(*) FROM audit_events WHERE created_at >= date_trunc('day', now())) AS events_today,
-                   (SELECT heartbeat_at FROM worker_heartbeat WHERE worker_name='paper-worker') AS worker_heartbeat
+                   (SELECT count(*) FROM audit_events
+                    WHERE created_at >= date_trunc('day', now())) AS events_today,
+                   (SELECT heartbeat_at FROM worker_heartbeat
+                    WHERE worker_name='paper-worker') AS worker_heartbeat
                    FROM app_control c WHERE c.id=1"""
             )
             return dict(row) if row else {}
