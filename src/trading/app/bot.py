@@ -31,7 +31,11 @@ def build_dispatcher(db: Database, settings: Settings) -> Dispatcher:
     async def start(message: Message) -> None:
         if not message.from_user:
             return
-        await db.register_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
+        await db.register_user(
+            message.from_user.id,
+            message.from_user.username,
+            message.from_user.first_name,
+        )
         await message.answer(
             "أهلاً بيك في بوت التداول التجريبي 📈\n\n"
             "الوضع الحالي محاكاة فقط؛ لا توجد أوامر شراء أو بيع حقيقية.\n"
@@ -56,14 +60,20 @@ def build_dispatcher(db: Database, settings: Settings) -> Dispatcher:
     @dp.message(F.text == "💼 المحفظة التجريبية")
     async def portfolio(message: Message) -> None:
         if is_admin(message):
-            await message.answer("المحفظة الافتراضية ستظهر هنا بعد ربط سجل التنفيذ الدائم. لا يتم احتساب أرباح قبل وجود صفقات محاكاة مسجلة.")
+            await message.answer(
+                "المحفظة الافتراضية ستظهر هنا بعد ربط سجل التنفيذ الدائم. "
+                "لا يتم احتساب أرباح قبل وجود صفقات محاكاة مسجلة."
+            )
 
     @dp.message(F.text == "⏸ إيقاف الدخول")
     async def pause(message: Message) -> None:
         if not is_admin(message) or not message.from_user:
             return
         await db.set_paused(True, message.from_user.id)
-        await message.answer("⏸ تم إيقاف فتح صفقات جديدة. يظل الخروج وإدارة المراكز متاحين داخل المحاكاة.")
+        await message.answer(
+            "⏸ تم إيقاف فتح صفقات جديدة. "
+            "يظل الخروج وإدارة المراكز متاحين داخل المحاكاة."
+        )
 
     @dp.message(F.text == "▶️ السماح بالدخول")
     async def resume(message: Message) -> None:
@@ -75,7 +85,9 @@ def build_dispatcher(db: Database, settings: Settings) -> Dispatcher:
     @dp.message()
     async def fallback(message: Message) -> None:
         if is_admin(message):
-            await message.answer("استخدم أزرار القائمة للتحكم في الوضع التجريبي.", reply_markup=MENU)
+            await message.answer(
+                "استخدم أزرار القائمة للتحكم في الوضع التجريبي.", reply_markup=MENU
+            )
 
     return dp
 
