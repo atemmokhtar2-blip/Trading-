@@ -58,4 +58,4 @@ mypy src
 
 ## Current milestone
 
-**Milestone 1 — paper-trading foundation:** deterministic risk policy and virtual portfolio ledger. The next implementation steps are the paper execution engine, validated market-data contracts, and deterministic replay. Binance connectivity, Railway deployment manifests, and live trading are not considered complete until separately implemented and tested.
+**Milestone 2 — paper execution:** deterministic risk policy, virtual portfolio ledger, and next-bar paper execution with explicit spread/slippage/commission, risk gating, and conservative stop/target handling. Next: validated market-data ingestion, deterministic replay, and durable Railway/PostgreSQL state. Binance Testnet, Railway deployment, and live trading are separate milestones and are not yet implemented.
