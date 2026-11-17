@@ -16,7 +16,11 @@ async def main() -> None:
     settings = Settings.from_env()
     db = await Database.connect(settings.database_url)
     instance_id = f"{socket.gethostname()}-{uuid.uuid4()}"
-    logger.info("Paper worker started; trading mode=%s; instance=%s", settings.trading_mode, instance_id)
+    logger.info(
+        "Paper worker started; trading mode=%s; instance=%s",
+        settings.trading_mode,
+        instance_id,
+    )
     try:
         while True:
             async with db.pool.acquire() as conn:
