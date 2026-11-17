@@ -15,7 +15,7 @@ Create a deterministic, auditable paper-trading environment in which the system 
 6. Record every input, decision, rejection, fill, fee, and state transition.
 7. Replay the same inputs and obtain the same results.
 
-The first implementation is exchange-independent. Binance Spot is the first planned market-data and Testnet integration target, not a dependency of the domain core.
+The first implementation is exchange-independent. Binance Spot is the first planned market-data and Testnet integration target, not a dependency of the domain core. The initial portfolio scope is USDT-quoted Spot pairs with USDT accounting. Fees paid in another asset must be converted using an explicit, timestamped conversion price or rejected.
 
 ## Non-goals
 
