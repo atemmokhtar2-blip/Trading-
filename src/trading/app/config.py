@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 import os
-from dataclasses import dataclass
 
 
 class ConfigurationError(RuntimeError):
@@ -25,7 +25,7 @@ class Settings:
     initial_paper_balance: str = "1000"
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         mode = os.getenv("TRADING_MODE", "paper").strip().lower()
         if mode != "paper":
             raise ConfigurationError("Only TRADING_MODE=paper is permitted in this release")
@@ -39,7 +39,9 @@ class Settings:
             if not parsed_balance.is_finite() or parsed_balance <= 0:
                 raise InvalidOperation
         except (InvalidOperation, ValueError) as exc:
-            raise ConfigurationError("INITIAL_PAPER_BALANCE must be a finite positive number") from exc
+            raise ConfigurationError(
+                "INITIAL_PAPER_BALANCE must be a finite positive number"
+            ) from exc
         return cls(
             database_url=_required("DATABASE_URL"),
             telegram_bot_token=_required("TELEGRAM_BOT_TOKEN"),
