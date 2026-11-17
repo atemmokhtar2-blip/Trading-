@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from decimal import Decimal
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart
@@ -9,6 +10,8 @@ from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
 from trading.app.config import Settings
 from trading.app.database import Database
+from trading.research.binance_account import BinanceReadOnlyAccountClient
+from trading.research.binance_public import BinanceDataError
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -16,6 +19,7 @@ logger = logging.getLogger(__name__)
 MENU = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📊 حالة النظام"), KeyboardButton(text="💼 المحفظة التجريبية")],
+        [KeyboardButton(text="🏦 حساب Binance")],
         [KeyboardButton(text="⏸ إيقاف الدخول"), KeyboardButton(text="▶️ السماح بالدخول")],
     ], resize_keyboard=True,
 )
@@ -64,6 +68,47 @@ def build_dispatcher(db: Database, settings: Settings) -> Dispatcher:
                 "المحفظة الافتراضية ستظهر هنا بعد ربط سجل التنفيذ الدائم. "
                 "لا يتم احتساب أرباح قبل وجود صفقات محاكاة مسجلة."
             )
+
+
+    @dp.message(F.text == "🏦 حساب Binance")
+    async def binance_account(message: Message) -> None:
+        if not is_admin(message):
+            return
+        if not settings.binance_api_key or not settings.binance_api_secret:
+            await message.answer(
+                "🔐 ربط حساب Binance غير مكتمل. أضف BINANCE_API_KEY و"
+                "BINANCE_API_SECRET في Railway Variables بصلاحية Read Only فقط."
+            )
+            return
+        client = BinanceReadOnlyAccountClient(
+            settings.binance_api_key, settings.binance_api_secret
+        )
+        try:
+            snapshot = await asyncio.to_thread(client.account_snapshot)
+        except (BinanceDataError, ValueError) as exc:
+            logger.warning("Binance read-only account request failed: %s", type(exc).__name__)
+            await message.answer(
+                "⚠️ تعذر قراءة حساب Binance الآن. راجع صلاحية المفتاح واتصال Binance، "
+                "ثم حاول مرة أخرى."
+            )
+            return
+        nonzero = [
+            item for item in snapshot.balances
+            if item.free != Decimal("0") or item.locked != Decimal("0")
+        ]
+        if not nonzero:
+            balances_text = "لا توجد أرصدة ظاهرة في حساب Spot."
+        else:
+            balances_text = "\\n".join(
+                f"• {item.asset}: متاح {item.free:f} | محجوز {item.locked:f}"
+                for item in nonzero[:30]
+            )
+        await message.answer(
+            "🏦 قراءة حساب Binance (Read Only)\\n"
+            "هذه بيانات الحساب الحقيقي وليست رأس مال المحفظة التجريبية.\\n\\n"
+            f"{balances_text}\\n\\n"
+            "🔒 لا توجد أوامر تداول أو سحب مفعّلة في هذا النظام."
+        )
 
     @dp.message(F.text == "⏸ إيقاف الدخول")
     async def pause(message: Message) -> None:
