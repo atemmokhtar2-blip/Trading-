@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
-from enum import Enum
+from enum import StrEnum
 from typing import Final
 
 ZERO: Final[Decimal] = Decimal("0")
 
 
-class FillSide(str, Enum):
+class FillSide(StrEnum):
     BUY = "BUY"
     SELL = "SELL"
 
@@ -150,7 +150,11 @@ class PortfolioLedger:
                 raise ValueError("sell quantity exceeds the open position")
 
             fraction_closed = fill.quantity / current_quantity
-            allocated_entry_fees = position.remaining_entry_fees * fraction_closed
+            allocated_entry_fees = (
+                position.remaining_entry_fees
+                if fill.quantity == current_quantity
+                else position.remaining_entry_fees * fraction_closed
+            )
             gross_pnl = (fill.price - position.average_entry_price) * fill.quantity
             self._realized_pnl += gross_pnl - allocated_entry_fees - fill.fee
             self._cash += fill.quantity * fill.price - fill.fee
