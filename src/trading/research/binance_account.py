@@ -82,7 +82,8 @@ def _account_error(code: int | None, http_status: int | None = None) -> BinanceA
         ),
         -1021: (
             "timestamp",
-            "⏱️ توقيت الطلب غير متزامن مع Binance. أعد المحاولة وراجع مزامنة وقت خادم Railway.",
+            "⏱️ توقيت الطلب غير متزامن مع Binance. أعد المحاولة وراجع "
+            "مزامنة وقت خادم Railway.",
         ),
         -1003: (
             "rate_limit",
@@ -107,7 +108,8 @@ def _account_error(code: int | None, http_status: int | None = None) -> BinanceA
     if http_status == 403:
         return BinanceAccountError(
             "http_403",
-            "🌐 Binance رفض الاتصال (HTTP 403). راجع قيود IP وإمكانية وصول Railway إلى Binance.",
+            "🌐 Binance رفض الاتصال (HTTP 403). راجع قيود IP وإمكانية "
+            "وصول Railway إلى Binance.",
             code,
             stage="signed_account",
             http_status=http_status,
@@ -115,7 +117,8 @@ def _account_error(code: int | None, http_status: int | None = None) -> BinanceA
     if http_status == 429:
         return BinanceAccountError(
             "rate_limit",
-            "🚦 Binance طلب تقليل عدد المحاولات. انتظر قليلًا ثم أعد المحاولة.",
+            "🚦 Binance طلب تقليل عدد المحاولات. انتظر قليلًا ثم "
+            "أعد المحاولة.",
             code,
             stage="signed_account",
             http_status=http_status,
@@ -123,7 +126,8 @@ def _account_error(code: int | None, http_status: int | None = None) -> BinanceA
     suffix = f" (كود Binance: {code})" if code is not None else ""
     return BinanceAccountError(
         "exchange_error",
-        f"⚠️ Binance رفض طلب قراءة الحساب بسبب غير مصنّف{suffix}. أرسل كود الخطأ للدعم.",
+        f"⚠️ Binance رفض طلب قراءة الحساب بسبب غير مصنّف{suffix}. "
+        "أرسل كود الخطأ للدعم.",
         code,
         stage="signed_account",
         http_status=http_status,
@@ -206,7 +210,7 @@ class BinanceReadOnlyAccountClient:
             elif isinstance(root, ConnectionRefusedError):
                 category = "connection_refused"
                 message = "🚫 خادم الاتصال رفض اتصال Railway بخدمة Binance."
-            elif isinstance(root, ValueError) or isinstance(root, (json.JSONDecodeError, UnicodeDecodeError)):
+            elif isinstance(root, ValueError):
                 category = "invalid_response"
                 message = "⚠️ تم الاتصال، لكن رد توقيت Binance غير صالح أو غير مفهوم."
             else:
