@@ -1,9 +1,8 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
 
-from trading.portfolio.ledger import PortfolioLedger
 from trading.execution.paper import (
     ExecutionCosts,
     IntentSide,
@@ -11,9 +10,9 @@ from trading.execution.paper import (
     PaperExecutionEngine,
     TradeIntent,
 )
+from trading.portfolio.ledger import PortfolioLedger
 
 D = Decimal
-UTC = timezone.utc
 COSTS = ExecutionCosts(D("10"), D("5"), D("10"))
 
 
