@@ -38,7 +38,9 @@ def make_bars(closes: list[str]) -> list[MarketBar]:
 
 def test_backtest_uses_completed_bars_and_charges_costs() -> None:
     prices = [
-        str(100 + i * 2) if i < 45 else str(190 - (i - 45))
+        str(200 - i) if i < 40
+        else str(160 + (i - 39) * 2) if i < 80
+        else str(240 - (i - 79) * 2)
         for i in range(120)
     ]
     report = run_ema_backtest(
@@ -56,7 +58,7 @@ def test_backtest_uses_completed_bars_and_charges_costs() -> None:
 def test_backtest_rejects_insufficient_history() -> None:
     with pytest.raises(ValueError):
         run_ema_backtest(
-            make_bars(["100"] * 30), Decimal("100"), StrategySpec("x", 5, 20)
+            make_bars(["100"] * 20), Decimal("100"), StrategySpec("x", 5, 20)
         )
 
 
@@ -75,7 +77,9 @@ def test_symbol_evaluation_uses_chronological_train_and_holdout() -> None:
     from trading.research.trainer import evaluate_symbol
 
     prices = [
-        str(100 + i * 2) if i < 45 else str(190 - (i - 45))
+        str(200 - i) if i < 40
+        else str(160 + (i - 39) * 2) if i < 80
+        else str(240 - (i - 79) * 2)
         for i in range(120)
     ]
     results = evaluate_symbol(
