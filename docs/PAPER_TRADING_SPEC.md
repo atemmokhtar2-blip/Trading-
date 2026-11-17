@@ -17,6 +17,10 @@ Create a deterministic, auditable paper-trading environment in which the system 
 
 The first implementation is exchange-independent. Binance Spot is the first planned market-data and Testnet integration target, not a dependency of the domain core. The initial portfolio scope is USDT-quoted Spot pairs with USDT accounting. Fees paid in another asset must be converted using an explicit, timestamped conversion price or rejected.
 
+## Implementation status
+
+The deterministic paper execution engine is implemented in `src/trading/execution/paper.py` with unit tests in `tests/test_paper_execution.py`. Its current constraints and deliberate simplifications are documented in [PAPER_EXECUTION_ENGINE.md](PAPER_EXECUTION_ENGINE.md). It remains an in-memory, offline simulator; durable PostgreSQL state, market-data ingestion, and Binance Testnet are separate future milestones.
+
 ## Non-goals
 
 - No real-money trading or authenticated exchange connectivity in this milestone.
