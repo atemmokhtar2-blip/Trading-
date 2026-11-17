@@ -10,6 +10,7 @@ from decimal import Decimal, InvalidOperation
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+from typing import Any
 
 from trading.execution.paper import MarketBar
 
@@ -32,7 +33,9 @@ class BinancePublicClient:
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout
 
-    def _get(self, path: str, params: dict[str, str | int] | None = None):
+    def _get(
+        self, path: str, params: dict[str, str | int] | None = None
+    ) -> Any:
         query = f"?{urlencode(params)}" if params else ""
         request = Request(
             f"{self._base_url}{path}{query}",
