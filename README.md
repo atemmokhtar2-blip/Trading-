@@ -39,6 +39,7 @@ The initial paper-trading milestone does not need Binance API keys. Secrets are 
 src/trading/
   risk/          deterministic risk policy
   portfolio/     decimal-based portfolio ledger
+  execution/     deterministic paper execution engine
 tests/            offline unit tests
 docs/             architecture, safety, and validation decisions
 ```
