@@ -15,9 +15,8 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
-from urllib.parse import urlsplit
 
 from trading.research.binance_public import BinanceDataError
 
@@ -68,24 +67,67 @@ class BinanceAccountError(BinanceDataError):
 
 def _account_error(code: int | None, http_status: int | None = None) -> BinanceAccountError:
     messages = {
-        -2014: ("invalid_key", "🔑 مفتاح API غير صحيح أو بصيغة غير مدعومة. راجع API Key ونوع المفتاح."),
-        -2015: ("key_ip_or_permission", "🔒 Binance رفض المفتاح: قد يكون المفتاح غير صحيح، أو عنوان IP غير مسموح، أو صلاحية القراءة غير مفعّلة. راجع API Management وقيود IP."),
-        -1022: ("signature", "✍️ توقيع الطلب غير صحيح. راجع API Secret وتأكد أن المفتاح من نوع HMAC."),
-        -1021: ("timestamp", "⏱️ توقيت الطلب غير متزامن مع Binance. أعد المحاولة وراجع مزامنة وقت خادم Railway."),
-        -1003: ("rate_limit", "🚦 تم تجاوز حد طلبات Binance مؤقتًا. انتظر قليلًا ثم أعد المحاولة."),
-        -1001: ("exchange_unavailable", "📡 خادم Binance غير متاح حاليًا. حاول مرة أخرى بعد قليل."),
-        -1006: ("exchange_unavailable", "📡 لم يصل رد مؤكد من Binance. حاول مرة أخرى بعد قليل."),
-        -1007: ("exchange_timeout", "⌛ انتهت مهلة استجابة Binance. حاول مرة أخرى بعد قليل."),
+        -2014: (
+            "invalid_key",
+            "🔑 مفتاح API غير صحيح أو بصيغة غير مدعومة. راجع API Key ونوع المفتاح.",
+        ),
+        -2015: (
+            "key_ip_or_permission",
+            "🔒 Binance رفض المفتاح: قد يكون المفتاح غير صحيح، أو عنوان IP غير مسموح، "
+            "أو صلاحية القراءة غير مفعّلة. راجع API Management وقيود IP.",
+        ),
+        -1022: (
+            "signature",
+            "✍️ توقيع الطلب غير صحيح. راجع API Secret وتأكد أن المفتاح من نوع HMAC.",
+        ),
+        -1021: (
+            "timestamp",
+            "⏱️ توقيت الطلب غير متزامن مع Binance. أعد المحاولة وراجع مزامنة وقت خادم Railway.",
+        ),
+        -1003: (
+            "rate_limit",
+            "🚦 تم تجاوز حد طلبات Binance مؤقتًا. انتظر قليلًا ثم أعد المحاولة.",
+        ),
+        -1001: (
+            "exchange_unavailable",
+            "📡 خادم Binance غير متاح حاليًا. حاول مرة أخرى بعد قليل.",
+        ),
+        -1006: (
+            "exchange_unavailable",
+            "📡 لم يصل رد مؤكد من Binance. حاول مرة أخرى بعد قليل.",
+        ),
+        -1007: (
+            "exchange_timeout",
+            "⌛ انتهت مهلة استجابة Binance. حاول مرة أخرى بعد قليل.",
+        ),
     }
     if code in messages:
         category, message = messages[code]
         return BinanceAccountError(category, message, code, stage="signed_account")
     if http_status == 403:
-        return BinanceAccountError("http_403", "🌐 Binance رفض الاتصال (HTTP 403). راجع قيود IP وإمكانية وصول Railway إلى Binance.", code, stage="signed_account", http_status=http_status)
+        return BinanceAccountError(
+            "http_403",
+            "🌐 Binance رفض الاتصال (HTTP 403). راجع قيود IP وإمكانية وصول Railway إلى Binance.",
+            code,
+            stage="signed_account",
+            http_status=http_status,
+        )
     if http_status == 429:
-        return BinanceAccountError("rate_limit", "🚦 Binance طلب تقليل عدد المحاولات. انتظر قليلًا ثم أعد المحاولة.", code, stage="signed_account", http_status=http_status)
+        return BinanceAccountError(
+            "rate_limit",
+            "🚦 Binance طلب تقليل عدد المحاولات. انتظر قليلًا ثم أعد المحاولة.",
+            code,
+            stage="signed_account",
+            http_status=http_status,
+        )
     suffix = f" (كود Binance: {code})" if code is not None else ""
-    return BinanceAccountError("exchange_error", f"⚠️ Binance رفض طلب قراءة الحساب بسبب غير مصنّف{suffix}. أرسل كود الخطأ للدعم.", code, stage="signed_account", http_status=http_status)
+    return BinanceAccountError(
+        "exchange_error",
+        f"⚠️ Binance رفض طلب قراءة الحساب بسبب غير مصنّف{suffix}. أرسل كود الخطأ للدعم.",
+        code,
+        stage="signed_account",
+        http_status=http_status,
+    )
 
 
 class BinanceReadOnlyAccountClient:
@@ -135,7 +177,15 @@ class BinanceReadOnlyAccountClient:
                 elapsed_ms=elapsed,
                 host=host,
             ) from exc
-        except (URLError, TimeoutError, socket.gaierror, ssl.SSLError, OSError, ValueError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        except (
+            URLError,
+            TimeoutError,
+            socket.gaierror,
+            ssl.SSLError,
+            OSError,
+            ValueError,
+            UnicodeDecodeError,
+        ) as exc:
             elapsed = round((time.monotonic() - started) * 1000)
             reason = getattr(exc, "reason", None)
             if isinstance(reason, BaseException):
@@ -161,7 +211,10 @@ class BinanceReadOnlyAccountClient:
                 message = "⚠️ تم الاتصال، لكن رد توقيت Binance غير صالح أو غير مفهوم."
             else:
                 category = "network"
-                message = "📡 فشل اتصال الشبكة بين Railway وBinance. التشخيص التفصيلي موجود في سجلات Railway."
+                message = (
+                    "📡 فشل اتصال الشبكة بين Railway وBinance. "
+                    "التشخيص التفصيلي موجود في سجلات Railway."
+                )
             raise BinanceAccountError(
                 category,
                 message,
@@ -221,7 +274,11 @@ class BinanceReadOnlyAccountClient:
         if isinstance(payload, dict) and isinstance(payload.get("code"), int):
             raise _account_error(payload["code"])
         if not isinstance(payload, dict) or "balances" not in payload:
-            raise BinanceAccountError("invalid_response", "⚠️ رد Binance لا يحتوي على بيانات الحساب المتوقعة.", stage="signed_account")
+            raise BinanceAccountError(
+                "invalid_response",
+                "⚠️ رد Binance لا يحتوي على بيانات الحساب المتوقعة.",
+                stage="signed_account",
+            )
         return payload
 
     def account_snapshot(self) -> SpotAccountSnapshot:
@@ -237,8 +294,11 @@ class BinanceReadOnlyAccountClient:
                 for item in payload["balances"]
             )
             if any(
-                not item.asset or not item.free.is_finite() or not item.locked.is_finite()
-                or item.free < 0 or item.locked < 0
+                not item.asset
+                or not item.free.is_finite()
+                or not item.locked.is_finite()
+                or item.free < 0
+                or item.locked < 0
                 for item in balances
             ):
                 raise ValueError("invalid balance")
