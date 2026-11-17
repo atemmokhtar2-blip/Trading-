@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "pip install ."
+buildCommand = "pip install \"aiogram>=3.13,<4\" \"asyncpg>=0.29,<1\""
 
 [deploy]
 startCommand = "PYTHONPATH=src python -m trading.app.main"
