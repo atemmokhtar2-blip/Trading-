@@ -25,6 +25,8 @@ class Settings:
     initial_paper_balance: str = "1000"
     binance_api_key: str | None = None
     binance_api_secret: str | None = None
+    paper_loop_enabled: bool = True
+    paper_poll_seconds: int = 300
 
     @classmethod
     def from_env(cls, require_telegram: bool = False) -> Settings:
@@ -56,6 +58,16 @@ class Settings:
             raise ConfigurationError(
                 "BINANCE_API_KEY and BINANCE_API_SECRET must be configured together"
             )
+        loop_flag = os.getenv("PAPER_LOOP_ENABLED", "true").strip().lower()
+        if loop_flag not in {"true", "false", "1", "0", "yes", "no"}:
+            raise ConfigurationError("PAPER_LOOP_ENABLED must be true or false")
+        raw_poll = os.getenv("PAPER_LOOP_POLL_SECONDS", "300").strip()
+        try:
+            poll_seconds = int(raw_poll)
+        except ValueError as exc:
+            raise ConfigurationError("PAPER_LOOP_POLL_SECONDS must be an integer") from exc
+        if not 60 <= poll_seconds <= 3600:
+            raise ConfigurationError("PAPER_LOOP_POLL_SECONDS must be between 60 and 3600")
         return cls(
             database_url=_required("DATABASE_URL"),
             telegram_bot_token=token,
@@ -64,4 +76,6 @@ class Settings:
             initial_paper_balance=balance,
             binance_api_key=api_key,
             binance_api_secret=api_secret,
+            paper_loop_enabled=loop_flag in {"true", "1", "yes"},
+            paper_poll_seconds=poll_seconds,
         )

@@ -157,6 +157,36 @@ class PaperExecutionEngine:
     def pending_intents(self) -> tuple[TradeIntent, ...]:
         return tuple(item.intent for _, item in sorted(self._pending.items()))
 
+    def bracket_for(self, instrument: str) -> tuple[Decimal, Decimal | None] | None:
+        """Return the (stop, target) protecting an open position, if any."""
+        bracket = self._brackets.get(instrument)
+        if bracket is None:
+            return None
+        return bracket.stop_price, bracket.target_price
+
+    def restore_bracket(
+        self, instrument: str, stop_price: Decimal, target_price: Decimal | None
+    ) -> None:
+        """Re-attach a persisted stop/target to a position restored from the ledger."""
+        if not isinstance(stop_price, Decimal) or not stop_price.is_finite() \
+                or stop_price <= ZERO:
+            raise ValueError("restored stop must be a finite positive Decimal")
+        if self._open_quantity(instrument) == ZERO:
+            raise ValueError("cannot restore a bracket without an open position")
+        self._brackets[instrument] = _Bracket(stop_price, target_price)
+
+    def restore_fill_counter(self, last_fill_number: int) -> None:
+        """Continue fill numbering after a restart so fill IDs stay unique."""
+        if last_fill_number < 0:
+            raise ValueError("fill counter cannot be negative")
+        self._fill_counter = max(self._fill_counter, last_fill_number)
+
+    def set_period_start_equity(self, equity: Decimal) -> None:
+        """Reset the reference equity used by the loss limits (e.g. at the UTC day start)."""
+        if not isinstance(equity, Decimal) or not equity.is_finite() or equity <= ZERO:
+            raise ValueError("period start equity must be a finite positive Decimal")
+        self._period_start_equity = equity
+
     def set_trading_enabled(self, enabled: bool) -> None:
         """Disable new entries without preventing exits or protective stops."""
         self._trading_enabled = enabled

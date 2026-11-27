@@ -10,6 +10,8 @@ from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
 from trading.app.config import Settings
 from trading.app.database import Database
+from trading.live.report import format_summary
+from trading.live.store import PostgresPaperStore
 from trading.research.binance_account import (
     BinanceAccountError,
     BinanceReadOnlyAccountClient,
@@ -67,9 +69,9 @@ def build_dispatcher(db: Database, settings: Settings) -> Dispatcher:
     @dp.message(F.text == "💼 المحفظة التجريبية")
     async def portfolio(message: Message) -> None:
         if is_admin(message):
+            summary = await PostgresPaperStore(db.pool).summary()
             await message.answer(
-                "المحفظة الافتراضية ستظهر هنا بعد ربط سجل التنفيذ الدائم. "
-                "لا يتم احتساب أرباح قبل وجود صفقات محاكاة مسجلة."
+                format_summary(summary, Decimal(settings.initial_paper_balance))
             )
 
 

@@ -60,3 +60,18 @@ def test_bot_configuration_requires_telegram(
     monkeypatch.delenv("TELEGRAM_BOT_TOKEN")
     with pytest.raises(ConfigurationError, match="TELEGRAM_BOT_TOKEN"):
         Settings.from_env(require_telegram=True)
+
+
+def test_paper_loop_settings(monkeypatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://x")
+    monkeypatch.delenv("PAPER_LOOP_ENABLED", raising=False)
+    monkeypatch.delenv("PAPER_LOOP_POLL_SECONDS", raising=False)
+    settings = Settings.from_env()
+    assert settings.paper_loop_enabled is True and settings.paper_poll_seconds == 300
+    monkeypatch.setenv("PAPER_LOOP_ENABLED", "false")
+    monkeypatch.setenv("PAPER_LOOP_POLL_SECONDS", "120")
+    settings = Settings.from_env()
+    assert settings.paper_loop_enabled is False and settings.paper_poll_seconds == 120
+    monkeypatch.setenv("PAPER_LOOP_POLL_SECONDS", "5")
+    with pytest.raises(ConfigurationError):
+        Settings.from_env()

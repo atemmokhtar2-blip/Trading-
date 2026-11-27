@@ -18,10 +18,10 @@ class Database:
         return db
 
     async def migrate(self) -> None:
-        schema_path = Path(__file__).resolve().parents[3] / "migrations" / "001_initial.sql"
-        sql = schema_path.read_text(encoding="utf-8")
+        migrations = Path(__file__).resolve().parents[3] / "migrations"
         async with self.pool.acquire() as conn:
-            await conn.execute(sql)
+            for schema_path in sorted(migrations.glob("*.sql")):
+                await conn.execute(schema_path.read_text(encoding="utf-8"))
 
     async def register_user(
         self, telegram_id: int, username: str | None, first_name: str | None
